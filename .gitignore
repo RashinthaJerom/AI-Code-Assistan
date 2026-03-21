@@ -1,0 +1,55 @@
+# Dependencies and node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE and Editor specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# API Keys and secrets (IMPORTANT!)
+*.key
+*.pem
+secrets.json
+.credentials
+
+# Build outputs
+dist/
+build/
+*.min.js
+*.min.css
+
+# OS files
+.DS_Store
+desktop.ini
+
+# Logs
+logs/
+*.log
+
+# Cache
+.cache/
+.eslintcache
+
+# VSCode workspace files
+*.code-workspace
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# API key shouldn't be in code
+api_key.js
+config.local.js

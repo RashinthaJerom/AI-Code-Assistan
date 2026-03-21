@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .code-editor {
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 16px;
+            line-height: 1.5;
+        }
+        .code-block {
+            background-color: #1e1e1e;
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .code-block:hover .copy-btn {
+            opacity: 1;
+        }
+        .error-badge {
+            background-color: #ef4444;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .success-badge {
+            background-color: #10b981;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result-section {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        .result-section.expanded {
+            max-height: 2000px;
+        }
+        pre {
+            background: transparent !important;
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+        pre code {
+            background: transparent !important;
+            padding: 0 !important;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .modal-header {
+            font-size: 28px;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 12px;
+        }
+        .modal-description {
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        .modal-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
+            font-size: 14px;
+            margin-bottom: 8px;
+            transition: border-color 0.3s, background-color 0.3s;
+        }
+        .modal-input:focus {
+            outline: none;
+            border-color: white;
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+        .modal-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+        .modal-help-text {
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 12px;
+            margin-bottom: 20px;
+        }
+        .modal-help-text a {
+            color: white;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+        .modal-btn {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        }
+        .modal-btn-primary {
+            background-color: white;
+            color: #667eea;
+        }
+        .modal-btn-secondary {
+            background-color: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+        .modal-error {
+            color: #ff6b6b;
+            font-size: 13px;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .modal-error.show {
+            display: block;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <!-- API Key Modal Dialog -->
+    <div id="apiKeyModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">🔐 API Key Required</div>
+            <div class="modal-description">
+                Please enter your OpenRouter API key to get started. It will be securely saved in your browser.
+            </div>
+            <div class="modal-error" id="modalError"></div>
+            <input 
+                type="password" 
+                id="modalApiKeyInput" 
+                placeholder="Enter your OpenRouter API key"
+                class="modal-input"
+            >
+            <div class="modal-help-text">
+                Don't have a key? <a href="https://openrouter.ai/keys" target="_blank">Get one free here</a>
+            </div>
+            <div class="modal-buttons">
+                <button id="modalSaveBtn" class="modal-btn modal-btn-primary">
+                    Save & Continue
+                </button>
+                <button id="modalSkipBtn" class="modal-btn modal-btn-secondary">
+                    Skip (for now)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-8 flex justify-center items-start gap-4 flex-col md:flex-row md:justify-center md:items-center">
+            <div class="flex-1 text-center">
+                <h1 class="text-5xl font-bold text-white mb-2">🤖 AI Code Assistant</h1>
+                <p class="text-white text-opacity-80 text-lg">Analyze, fix, and optimize your code instantly</p>
+            </div>
+            <button 
+                id="changeKeyBtn"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition text-sm whitespace-nowrap"
+                title="Change API key"
+            >
+                🔐 Change API Key
+            </button>
+        </div>
+
+        <!-- Main Container -->
+        <div class="grid md:grid-cols-[1fr_2fr] gap-6">
+            <!-- Left Panel - Input -->
+            <div class="glass-effect p-6 rounded-lg shadow-xl transform transition hover:shadow-2xl">
+                <h2 class="text-2xl font-bold text-white mb-4">📝 Enter Your Code</h2>
+                
+                <!-- Language Selection -->
+                <div class="mb-4">
+                    <label class="block text-white text-sm font-semibold mb-2">Programming Language</label>
+                    <select 
+                        id="language" 
+                        class="w-full px-4 py-2 rounded-lg bg-white bg-opacity-20 text-white border border-white border-opacity-30 focus:outline-none focus:ring-2 focus:ring-white"
+                    >
+                        <option value="auto" class="text-gray-900">Auto-detect</option>
+                        <option value="javascript" class="text-gray-900">JavaScript</option>
+                        <option value="python" class="text-gray-900">Python</option>
+                        <option value="java" class="text-gray-900">Java</option>
+                        <option value="cpp" class="text-gray-900">C++</option>
+                        <option value="csharp" class="text-gray-900">C#</option>
+                        <option value="php" class="text-gray-900">PHP</option>
+                        <option value="ruby" class="text-gray-900">Ruby</option>
+                        <option value="go" class="text-gray-900">Go</option>
+                        <option value="rust" class="text-gray-900">Rust</option>
+                        <option value="sql" class="text-gray-900">SQL</option>
+                        <option value="html" class="text-gray-900">HTML</option>
+                        <option value="css" class="text-gray-900">CSS</option>
+                    </select>
+                </div>
+
+                <!-- Code Input -->
+                <div class="mb-4">
+                    <label class="block text-white text-sm font-semibold mb-2">Your Code</label>
+                    <textarea 
+                        id="codeInput" 
+                        placeholder="Paste your code here and I'll analyze & fix it..."
+                        rows="12"
+                        class="code-editor w-full focus:outline-none focus:ring-2 focus:ring-white"
+                    ></textarea>
+                </div>
+
+                <!-- Analyze Options -->
+                <div class="mb-4 flex gap-2 flex-wrap">
+                    <label class="flex items-center text-white text-sm">
+                        <input type="checkbox" id="findErrors" checked class="mr-2 w-4 h-4">
+                        Find Errors
+                    </label>
+                    <label class="flex items-center text-white text-sm">
+                        <input type="checkbox" id="fixCode" checked class="mr-2 w-4 h-4">
+                        Fix Code
+                    </label>
+                    <label class="flex items-center text-white text-sm">
+                        <input type="checkbox" id="optimize" class="mr-2 w-4 h-4">
+                        Optimize
+                    </label>
+                    <label class="flex items-center text-white text-sm">
+                        <input type="checkbox" id="explain" class="mr-2 w-4 h-4">
+                        Explain
+                    </label>
+                </div>
+
+                <!-- Buttons -->
+                <div class="flex gap-3">
+                    <button 
+                        id="analyzeBtn"
+                        class="flex-1 bg-gradient-to-r from-white to-gray-200 text-purple-600 font-bold py-3 px-4 rounded-lg hover:shadow-lg transition transform hover:scale-105 flex items-center justify-center gap-2"
+                    >
+                        <span>⚡ Analyze Code</span>
+                    </button>
+                    <button 
+                        id="clearBtn"
+                        class="bg-red-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-red-600 transition"
+                    >
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel - Results -->
+            <div class="glass-effect p-6 rounded-lg shadow-xl flex flex-col">
+                <h2 class="text-2xl font-bold text-white mb-4">📊 Analysis Results</h2>
+                
+                <!-- Loading State -->
+                <div id="loadingState" class="hidden flex flex-col items-center justify-center py-12 flex-1">
+                    <div class="loading-spinner mb-4"></div>
+                    <p class="text-white text-lg">Analyzing your code...</p>
+                </div>
+
+                <!-- Results Container -->
+                <div id="resultsContainer" class="space-y-6 overflow-y-auto flex-1">
+                    <div class="text-gray-300 text-center py-12">
+                        <p class="text-lg">👈 Enter code and click "Analyze Code" to get started</p>
+                    </div>
+                </div>
+
+                <!-- Error Alert -->
+                <div id="errorAlert" class="hidden bg-red-500 bg-opacity-20 border border-red-500 rounded-lg p-4 mt-4">
+                    <p class="text-red-200"><strong>Error:</strong> <span id="errorMessage"></span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center mt-8 text-white text-opacity-70 text-sm">
+            <p>Powered by OpenRouter AI • Model: stepfun/step-3.5-flash:free</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
