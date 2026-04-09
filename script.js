@@ -1,7 +1,7 @@
 // Configuration
 const CONFIG = {
     API_URL: 'https://openrouter.ai/api/v1/chat/completions',
-    MODEL_ID: 'stepfun/step-3.5-flash:free',
+    MODEL_ID: 'nvidia/nemotron-3-super-120b-a12b:free',
     STORAGE_KEY: 'openrouter_api_key'
 };
 
